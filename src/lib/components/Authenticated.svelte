@@ -4,18 +4,18 @@
 		to: string;
 	};
 
-	const links: Link[] = [
-		{ text: 'patient information', to: '/me' },
-		{ text: 'observations', to: '/observations' },
-		{ text: 'token', to: '/token' }
-	];
+	// const links: Link[] = [
+	// 	{ text: 'patient information', to: '/me' },
+	// 	{ text: 'observations', to: '/observations' },
+	// 	{ text: 'token', to: '/token' }
+	// ];
 </script>
 
 <div>
 	<div>
-		{#each links as link}
+		<!-- {#each links as link}
 			<a href={link.to} style="margin-left: 1rem; font-size: 2rem;">{link.text}</a>
-		{/each}
+		{/each} -->
 	</div>
 	<slot />
 </div>
