@@ -7,7 +7,7 @@
 	import ChatPanel from '$lib/components/ChatPanel.svelte';
 	import { env } from '$env/dynamic/public';
 
-	// State management with runes
+	// State management with runes (updated)
 	let patient = $state<Patient | null>(null);
 	let documents = $state<ProcessedDocument[]>([]);
 	let loading = $state(true);
