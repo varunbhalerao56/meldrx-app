@@ -5,6 +5,7 @@
 	import ChatDrawer from '$lib/components/ChatPanel.svelte';
 	import { OpenRouterClient, type ChatMessage } from '$lib/services/openrouter';
 	import ChatPanel from '$lib/components/ChatPanel.svelte';
+	import { env } from '$env/dynamic/public';
 
 	// State management with runes
 	let patient = $state<Patient | null>(null);
@@ -16,9 +17,7 @@
 	let messages = $state<ChatMessage[]>([]);
 	let isLoading = $state(false);
 
-	const client = new OpenRouterClient(
-		'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'
-	);
+	const client = new OpenRouterClient(env.PUBLIC_OPEN_ROUTER);
 
 	type Patient = {
 		resourceType: string;
