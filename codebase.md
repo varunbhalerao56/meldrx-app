@@ -239,10 +239,290 @@ export {};
 
 ```
 
-# src/lib/index.ts
+# src/lib/components/ChatPanel.svelte
+
+```svelte
+<script lang="ts">
+	import type { ChatMessage } from '$lib/services/openrouter';
+
+	let { messages, isLoading, onSubmit, onClear } = $props<{
+		messages: ChatMessage[];
+		isLoading: boolean;
+		onSubmit: (message: string) => void;
+		onClear: () => void;
+	}>();
+
+	let currentMessage = $state('');
+
+	function handleSubmit(event: Event) {
+		event.preventDefault();
+		if (!currentMessage.trim() || isLoading) return;
+
+		onSubmit(currentMessage);
+		currentMessage = '';
+	}
+</script>
+
+<div class="p-4 overflow-y-auto">
+	<div class="card p-4 space-y-4">
+		<div class="flex justify-between items-center">
+			<h3 class="h3">AI Assistant</h3>
+			<button class="btn btn-sm variant-soft" onclick={onClear}>Clear</button>
+		</div>
+
+		<!-- Chat messages -->
+		<div class="space-y-2 h-[calc(100vh-385px)] overflow-y-auto">
+			{#each messages as message}
+				<div class="card p-3 {message.role === 'user' ? 'variant-soft' : 'variant-filled'}">
+					<p class="whitespace-pre-wrap">{message.content}</p>
+				</div>
+			{/each}
+			{#if isLoading}
+				<div class="flex justify-center">
+					<div class="spinner-dual-ring"></div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Chat input -->
+		<form class="flex flex-col gap-2" onsubmit={handleSubmit}>
+			<textarea
+				bind:value={currentMessage}
+				placeholder="Ask about the medical decisions..."
+				class="textarea p-2"
+				rows="4"
+				disabled={isLoading}
+			>
+			</textarea>
+
+			<button type="submit" class="btn variant-filled" disabled={isLoading}> Send </button>
+		</form>
+	</div>
+</div>
+
+<style>
+	.spinner-dual-ring {
+		width: 24px;
+		height: 24px;
+		border: 3px solid #919191;
+		border-radius: 50%;
+		border-top-color: transparent;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+</style>
+
+```
+
+# src/lib/services/openrouter.ts
 
 ```ts
-// place files you want to import through the `$lib` alias in this folder.
+export type ChatMessage = {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+};
+
+export class OpenRouterClient {
+  private readonly apiKey: string;
+  private readonly baseUrl = 'https://openrouter.ai/api/v1';
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  getPromptMessage(clinicalNotes: string): string {
+    return `# Clinical Notes Analysis Prompt
+
+      Analyze the provided clinical notes and generate a comprehensive JSON report following the structure and definitions below:
+
+      ## Analysis Requirements
+
+      ### Clinical Notes
+      ${clinicalNotes}
+
+      ### Output Formatjson
+      {
+        "conditions": [
+          {
+            "name": "string",                // Name of the medical condition
+            "severityLevel": "string",       // Values: ["Mild", "Moderate", "Severe", "Resolved"]
+            "reasonForSeverity": "string",   // Explanation for severity assessment
+            "timelineStart": "date",         // First mention/diagnosis date
+            "timelineEnd": "date",           // Last mention or "present"
+            "documentSources": ["string"],   // List of document IDs where condition is mentioned
+            "riskFactors": ["string"],       // Associated risk factors
+            "healthImpact": "string",        // Impact on patient's health
+            "progressionPattern": "string"   // Values: ["Improving", "Stable", "Worsening", "Resolved"]
+          }
+        ],
+        "followUpCare": [
+          {
+            "careName": "string",            // Name of recommended follow-up
+            "reasonForFollowUp": "string",   // Why this follow-up is needed
+            "recommendedFrequency": "string", // How often follow-up should occur
+            "priorityLevel": "string",       // Values: ["Low", "Medium", "High", "Urgent"]
+            "lastVisitDate": "date",         // Date of last related visit
+            "nextDueDate": "date",           // When next follow-up is due
+            "documentSources": ["string"],   // List of document IDs mentioning this follow-up
+            "complianceStatus": "string"     // Values: ["Compliant", "Partially Compliant", "Non-compliant"]
+          }
+        ],
+        "treatmentPredictions": [
+          {
+            "conditionTreated": "string",    // Condition being treated
+            "expectedOutcome": "string",     // Values: ["Favorable", "Guarded", "Poor", "Uncertain"]
+            "patientAdherence": "string",    // Values: ["High", "Moderate", "Low"]
+            "documentSources": ["string"],   // Supporting documentation IDs
+            "supportingEvidence": "string",  // Evidence for prediction
+            "confidenceLevel": "string",     // Values: ["High", "Moderate", "Low"]
+            "timeframe": "string"            // Expected timeframe for outcome
+          }
+        ],
+        "medicationAdherence": [
+          {
+            "medicationName": "string",      // Name and dosage of medication
+            "adherenceLevel": "string",      // Values: ["High", "Moderate", "Low"]
+            "startDate": "date",             // When medication was started
+            "endDate": "date",               // When medication ended or "current"
+            "sideEffectsReported": ["string"], // Any reported side effects
+            "renewalPattern": "string",      // Values: ["Regular", "Irregular", "Discontinued"]
+            "documentSources": ["string"]    // Supporting documentation IDs
+          }
+        ],
+        "preventiveCare": [
+          {
+            "serviceName": "string",         // Name of preventive service
+            "recommendedFrequency": "string", // How often service should occur
+            "lastServiceDate": "date",       // Date of last service
+            "complianceLevel": "string",     // Values: ["Optimal", "Adequate", "Suboptimal"]
+            "nextDueDate": "date",           // When next service is due
+            "documentSources": ["string"]    // Supporting documentation IDs
+          }
+        ],
+        "socialFactors": {
+          "educationLevel": "string",        // Highest education achieved
+          "insuranceStatus": "string",       // Current insurance coverage
+          "employmentStatus": "string",      // Values: ["Employed", "Unemployed", "Retired", "Disabled"]
+          "supportNetwork": ["string"],      // Available support systems
+          "careBarriers": ["string"],        // Identified barriers to care
+          "documentSources": ["string"]      // Supporting documentation IDs
+        }
+      }
+
+      ## Scale Definitions
+
+      ### Severity Levels
+      - Mild: Minimal impact on daily life, easily managed
+      - Moderate: Notable impact on daily life, requires regular management
+      - Severe: Significant impact on daily life, requires intensive management
+      - Resolved: Condition no longer active
+
+      ### Priority Levels
+      - Low: Routine follow-up acceptable
+      - Medium: Should be addressed within normal timeframes
+      - High: Requires close monitoring
+      - Urgent: Immediate attention needed
+
+      ### Outcome Expectations
+      - Favorable: High likelihood of positive outcome
+      - Guarded: Uncertain but leaning positive
+      - Poor: High likelihood of negative outcome
+      - Uncertain: Insufficient data to predict
+
+      ### Adherence/Compliance Levels
+      - High: >90% compliance with treatment plan
+      - Moderate: 60-90% compliance
+      - Low: <60% compliance
+
+      ### Confidence Levels
+      - High: Strong evidence supporting assessment
+      - Moderate: Some evidence with some uncertainty
+      - Low: Limited evidence or significant uncertainty
+
+      ## Analysis Guidelines
+
+      1. Base all assessments on explicit evidence from the clinical notes
+      2. Include specific document IDs and dates for all sources
+      3. Note any conflicting information or uncertainties
+      4. Consider temporal patterns and trends
+      5. Account for social and environmental factors
+      6. Document any gaps in information that affect confidence levels
+
+      ## Required Analyses
+
+      For each section, provide:
+      1. Comprehensive review of all relevant documentation
+      2. Temporal analysis of patterns and trends
+      3. Evidence-based assessment using provided scales
+      4. Clear documentation of sources and reasoning
+      5. Identification of any information gaps
+      6. Assessment of confidence in conclusions
+
+      The output should be properly formatted JSON suitable for programmatic processing and UI display.`;
+  }
+
+  async streamChat(messages: ChatMessage[], onChunk: (chunk: string) => void): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Medical Notes Analysis'
+        },
+        body: JSON.stringify({
+          model: 'anthropic/claude-3-sonnet', // Updated model ID
+          messages: messages,
+          stream: true,
+          temperature: 1,
+          max_tokens: 100000
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('OpenRouter API Error:', errorData);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No reader available');
+
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices[0]?.delta?.content;
+              if (content) onChunk(content);
+            } catch (e) {
+              console.error('Error parsing chunk:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Streaming error:', error);
+      throw error;
+    }
+  }
+}
 
 ```
 
@@ -339,13 +619,22 @@ export {};
 	import FHIR from 'fhirclient';
 	import { browser } from '$app/environment';
 	import Authenticated from '$lib/components/Authenticated.svelte';
+	import ChatDrawer from '$lib/components/ChatPanel.svelte';
+	import { OpenRouterClient, type ChatMessage } from '$lib/services/openrouter';
+	import ChatPanel from '$lib/components/ChatPanel.svelte';
+	import { env } from '$env/dynamic/public';
 
-	// State management with runes
+	// State management with runes (updated)
 	let patient = $state<Patient | null>(null);
 	let documents = $state<ProcessedDocument[]>([]);
 	let loading = $state(true);
 	let searchTerm = $state('');
 	let allExpanded = $state(false);
+	let isOpen = $state(false);
+	let messages = $state<ChatMessage[]>([]);
+	let isLoading = $state(false);
+
+	const client = new OpenRouterClient(env.PUBLIC_OPEN_ROUTER);
 
 	type Patient = {
 		resourceType: string;
@@ -488,6 +777,7 @@ export {};
 
 		return allDocs;
 	}
+
 	function toggleAll() {
 		allExpanded = !allExpanded;
 		if (browser) {
@@ -496,6 +786,61 @@ export {};
 				detail.open = allExpanded;
 			});
 		}
+	}
+
+	async function handleChatSubmit(message: string) {
+		if (isLoading) return;
+		isLoading = true;
+
+		// Add user message to chat
+		messages = [...messages, { role: 'user', content: message }];
+
+		console.info(
+			documents
+				.map((doc, index) => {
+					return `Document ${index + 1}:\n${JSON.stringify(doc, null, 2)}`;
+				})
+				.join('\n\n')
+		);
+
+		// Prepare system message with context
+		const systemMessage = {
+			role: 'system' as const,
+			content: `You are a medical language model. 
+			* Read the clinical notes
+			* Identify the main decisions (e.g., prescribing a medication, ordering labs, advising lifestyle changes, etc.).
+			* For each decision, explicitly state the reason (why it was done). Use context from the note to either quote or infer the rationale.
+			
+			---
+			Context (Clinical Notes):
+			${documents
+				.map((doc, index) => {
+					return `Document ${index + 1}:\n${JSON.stringify(doc, null, 2)}`;
+				})
+				.join('\n\n')}
+			---`
+		};
+
+		let streamingMessage = { role: 'assistant' as const, content: '' };
+		messages = [...messages, streamingMessage];
+
+		try {
+			await client.streamChat(
+				[systemMessage, ...messages.slice(0, -1), { role: 'user', content: message }],
+				(chunk) => {
+					streamingMessage.content += chunk;
+					messages = [...messages.slice(0, -1), streamingMessage];
+				}
+			);
+		} catch (error) {
+			console.error('Chat error:', error);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	function clearChat() {
+		messages = [];
 	}
 
 	$effect(() => {
@@ -551,7 +896,7 @@ export {};
 		<div class="flex justify-center items-center h-screen">
 			<div class="card p-4">
 				<p>Retrieving your medical records...</p>
-				<div class="progress" />
+				<div class="progress"></div>
 			</div>
 		</div>
 	{:else}
@@ -574,6 +919,13 @@ export {};
 						<button class="btn variant-filled h-full px-8" onclick={toggleAll}>
 							{allExpanded ? 'Collapse All' : 'Expand All'}
 						</button>
+						<button
+							class="btn variant-filled-secondary h-full px-8"
+							class:variant-filled-primary={isOpen}
+							onclick={() => (isOpen = !isOpen)}
+						>
+							AI Analysis
+						</button>
 					</div>
 				</div>
 			</div>
@@ -581,8 +933,12 @@ export {};
 			<!-- Scrollable Content with max width -->
 			<div class="flex-1 overflow-hidden bg-surface-100/65">
 				<div class="container mx-auto max-w-[1400px] h-full">
-					<div class="h-full grid grid-cols-[300px_1fr]">
-						<!-- Fixed Patient Info Sidebar -->
+					<div
+						class="h-full grid"
+						class:grid-cols-[300px_1fr]={!isOpen}
+						class:grid-cols-[300px_1fr_450px]={isOpen}
+					>
+						<!-- Patient Info Sidebar -->
 						{#if patient}
 							<div class="p-4 overflow-y-auto">
 								<div class="card p-4 space-y-4">
@@ -612,7 +968,7 @@ export {};
 							</div>
 						{/if}
 
-						<!-- Scrollable Documents List -->
+						<!-- Documents List -->
 						<div class="p-4 overflow-y-auto">
 							<div class="space-y-4">
 								{#each filteredDocs as doc}
@@ -640,6 +996,11 @@ export {};
 								{/each}
 							</div>
 						</div>
+
+						<!-- Chat Panel -->
+						{#if isOpen}
+							<ChatPanel {messages} {isLoading} onSubmit={handleChatSubmit} onClear={clearChat} />
+						{/if}
 					</div>
 				</div>
 			</div>

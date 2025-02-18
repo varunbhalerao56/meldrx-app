@@ -6,6 +6,7 @@
 	import { OpenRouterClient, type ChatMessage } from '$lib/services/openrouter';
 	import ChatPanel from '$lib/components/ChatPanel.svelte';
 	import { env } from '$env/dynamic/public';
+	import AnalyzePanel from '$lib/components/AnalyzePanel.svelte';
 
 	// State management with runes (updated)
 	let patient = $state<Patient | null>(null);
@@ -16,6 +17,7 @@
 	let isOpen = $state(false);
 	let messages = $state<ChatMessage[]>([]);
 	let isLoading = $state(false);
+	let rawData = $state('');
 
 	const client = new OpenRouterClient(env.PUBLIC_OPEN_ROUTER);
 
@@ -171,6 +173,39 @@
 		}
 	}
 
+	async function analyzeRecords() {
+		if (isLoading) return;
+		isLoading = true;
+
+		let docs = documents
+			.map((doc, index) => {
+				return `Document ${index + 1}:\n${JSON.stringify(doc, null, 2)}`;
+			})
+			.join('\n\n');
+
+		try {
+			const promptMessage = client.getPromptMessage(docs);
+			const analysis = await client.chat([
+				{
+					role: 'system',
+					content: promptMessage
+				}
+			]);
+
+			console.info(analysis);
+
+			// Save raw analysis data
+			rawData = analysis;
+
+			// Add the analysis to messages
+			messages = [...messages, { role: 'assistant', content: analysis }];
+		} catch (error) {
+			console.error('Analysis error:', error);
+		} finally {
+			isLoading = false;
+		}
+	}
+
 	async function handleChatSubmit(message: string) {
 		if (isLoading) return;
 		isLoading = true;
@@ -223,7 +258,9 @@
 	}
 
 	function clearChat() {
+		rawData = '';
 		messages = [];
+		isOpen = false;
 	}
 
 	$effect(() => {
@@ -305,9 +342,13 @@
 						<button
 							class="btn variant-filled-secondary h-full px-8"
 							class:variant-filled-primary={isOpen}
-							onclick={() => (isOpen = !isOpen)}
+							onclick={async () => {
+								isOpen = !isOpen;
+								rawData = '';
+								await analyzeRecords();
+							}}
 						>
-							AI Analysis
+							Analyze Records
 						</button>
 					</div>
 				</div>
@@ -319,7 +360,7 @@
 					<div
 						class="h-full grid"
 						class:grid-cols-[300px_1fr]={!isOpen}
-						class:grid-cols-[300px_1fr_450px]={isOpen}
+						class:grid-cols-[300px_1fr_500px]={isOpen}
 					>
 						<!-- Patient Info Sidebar -->
 						{#if patient}
@@ -382,7 +423,7 @@
 
 						<!-- Chat Panel -->
 						{#if isOpen}
-							<ChatPanel {messages} {isLoading} onSubmit={handleChatSubmit} onClear={clearChat} />
+							<AnalyzePanel {messages} {rawData} {isLoading} onClear={clearChat} />
 						{/if}
 					</div>
 				</div>
