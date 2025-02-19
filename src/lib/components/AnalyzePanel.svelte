@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type { ChatMessage } from '$lib/services/openrouter';
 	import AnalyzeData from './AnalyzeData.svelte';
+	import ConsultationPrep from './ConsultationPrep.svelte';
 
-	let { messages, rawData, isLoading, onClear } = $props<{
+	let { messages, rawData, isLoading, onClear, type } = $props<{
 		messages: ChatMessage[];
 		rawData: string;
 		isLoading: boolean;
 		onClear: () => void;
+		type: string;
 	}>();
 
 	let currentMessage = $state('');
@@ -20,8 +22,12 @@
 
 		<!-- Raw Data -->
 		<div class="space-y-2 h-[calc(100vh-205px)] overflow-y-auto">
-			{#if isLoading == false}
+			{#if isLoading == false && type == 'analyze'}
 				<AnalyzeData {rawData} />
+			{/if}
+
+			{#if isLoading == false && type == 'prep'}
+				<ConsultationPrep {rawData} />
 			{/if}
 
 			{#if isLoading}

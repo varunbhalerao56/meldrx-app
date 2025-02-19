@@ -8,6 +8,7 @@
 	$effect(() => {
 		FHIR.oauth2.ready().then((client) => {
 			if (!client) return;
+
 			const authHeader = client.getAuthorizationHeader();
 			if (authHeader) {
 				token = authHeader.split(' ')[1];

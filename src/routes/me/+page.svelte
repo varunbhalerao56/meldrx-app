@@ -7,6 +7,7 @@
 	import ChatPanel from '$lib/components/ChatPanel.svelte';
 	import { env } from '$env/dynamic/public';
 	import AnalyzePanel from '$lib/components/AnalyzePanel.svelte';
+	import { goto } from '$app/navigation';
 
 	// State management with runes
 	let patient = $state<Patient | null>(null);
@@ -18,6 +19,8 @@
 	let messages = $state<ChatMessage[]>([]);
 	let isLoading = $state(false);
 	let rawData = $state('');
+
+	let type = $state('');
 
 	const client = new OpenRouterClient(env.PUBLIC_OPEN_ROUTER);
 
@@ -59,6 +62,16 @@
 			}>;
 		};
 	};
+
+	async function logout() {
+		if (browser) {
+			try {
+				window.location.href = '/';
+			} catch (error) {
+				console.error('Logout error:', error);
+			}
+		}
+	}
 
 	function decodeBase64(data: string): string {
 		if (browser) {
@@ -174,6 +187,9 @@
 	}
 
 	async function analyzeRecords() {
+		clearSidebarData();
+
+		type = 'analyze';
 		if (isLoading) return;
 		isLoading = true;
 
@@ -206,61 +222,53 @@
 		}
 	}
 
-	async function handleChatSubmit(message: string) {
+	async function consultationPrep() {
+		clearSidebarData();
+
+		type = 'prep';
 		if (isLoading) return;
 		isLoading = true;
 
-		// Add user message to chat
-		messages = [...messages, { role: 'user', content: message }];
+		let docs = documents
+			.map((doc, index) => {
+				return `Document ${index + 1}:\n${JSON.stringify(doc, null, 2)}`;
+			})
+			.join('\n\n');
 
-		console.info(
-			documents
-				.map((doc, index) => {
-					return `Document ${index + 1}:\n${JSON.stringify(doc, null, 2)}`;
-				})
-				.join('\n\n')
-		);
-
-		// Prepare system message with context
-		const systemMessage = {
-			role: 'system' as const,
-			content: `You are a medical language model. 
-			* Read the clinical notes
-			* Identify the main decisions (e.g., prescribing a medication, ordering labs, advising lifestyle changes, etc.).
-			* For each decision, explicitly state the reason (why it was done). Use context from the note to either quote or infer the rationale.
-			
-			---
-			Context (Clinical Notes):
-			${documents
-				.map((doc, index) => {
-					return `Document ${index + 1}:\n${JSON.stringify(doc, null, 2)}`;
-				})
-				.join('\n\n')}
-			---`
-		};
-
-		let streamingMessage = { role: 'assistant' as const, content: '' };
-		messages = [...messages, streamingMessage];
+		console.info(docs);
 
 		try {
-			await client.streamChat(
-				[systemMessage, ...messages.slice(0, -1), { role: 'user', content: message }],
-				(chunk) => {
-					streamingMessage.content += chunk;
-					messages = [...messages.slice(0, -1), streamingMessage];
+			const promptMessage = client.getConsultationPrepPrompt(docs);
+			const analysis = await client.chat([
+				{
+					role: 'system',
+					content: promptMessage
 				}
-			);
+			]);
+
+			console.info(analysis);
+
+			// Save raw analysis data
+			rawData = analysis;
+
+			// Add the analysis to messages
+			messages = [...messages, { role: 'assistant', content: analysis }];
 		} catch (error) {
-			console.error('Chat error:', error);
+			console.error('Analysis error:', error);
 		} finally {
 			isLoading = false;
 		}
 	}
 
-	function clearChat() {
+	function closeAndClear() {
 		rawData = '';
 		messages = [];
 		isOpen = false;
+	}
+
+	function clearSidebarData() {
+		rawData = '';
+		messages = [];
 	}
 
 	$effect(() => {
@@ -339,12 +347,26 @@
 						<button class="btn variant-filled h-full px-8" onclick={toggleAll}>
 							{allExpanded ? 'Collapse All' : 'Expand All'}
 						</button>
+
 						<button
 							class="btn variant-filled-secondary h-full px-8"
 							class:variant-filled-primary={isOpen}
 							onclick={async () => {
-								isOpen = !isOpen;
+								isOpen = true;
 								rawData = '';
+								type = 'prep';
+								await consultationPrep();
+							}}
+						>
+							Consultation Prep
+						</button>
+						<button
+							class="btn variant-filled-secondary h-full px-8"
+							class:variant-filled-primary={isOpen}
+							onclick={async () => {
+								isOpen = true;
+								rawData = '';
+								type = 'analyze';
 								await analyzeRecords();
 							}}
 						>
@@ -389,6 +411,23 @@
 										{/if}
 									</div>
 								</div>
+
+								<button class="btn variant-filled w-full mt-5" onclick={async () => {}}>
+									Privacy Policy
+								</button>
+
+								<button class="btn variant-filled w-full mt-5" onclick={async () => {}}>
+									Terms & Conditions
+								</button>
+
+								<button
+									class="btn w-full mt-5"
+									onclick={async () => {
+										await logout();
+									}}
+								>
+									Logout
+								</button>
 							</div>
 						{/if}
 
@@ -423,7 +462,7 @@
 
 						<!-- Chat Panel -->
 						{#if isOpen}
-							<AnalyzePanel {messages} {rawData} {isLoading} onClear={clearChat} />
+							<AnalyzePanel {messages} {rawData} {isLoading} onClear={closeAndClear} {type} />
 						{/if}
 					</div>
 				</div>

@@ -212,6 +212,357 @@ export {};
 @tailwind variants;
 ```
 
+# src/lib/components/AnalyzeData.svelte
+
+```svelte
+<!-- src/lib/components/AnalysisDisplay.svelte -->
+<script lang="ts">
+	import type { AnalysisData } from '$lib/models/analysis';
+
+	let { rawData } = $props<{ rawData: string }>();
+
+	function parseAnalysisData(rawData: string): AnalysisData | null {
+		try {
+			// First, try to parse the raw JSON string
+			let parsed: AnalysisData;
+
+			if (typeof rawData === 'string') {
+				parsed = JSON.parse(rawData);
+			} else {
+				parsed = rawData;
+			}
+
+			// Validate and ensure all required fields are present
+			return {
+				conditions:
+					parsed.conditions?.map((c) => ({
+						name: c.name || 'Unknown Condition',
+						severityLevel: c.severityLevel || 'Moderate',
+						reasonForSeverity: c.reasonForSeverity || 'No reason provided',
+						timelineStart: c.timelineStart || 'Unknown',
+						timelineEnd: c.timelineEnd || 'Present',
+						riskFactors: c.riskFactors || [],
+						healthImpact: c.healthImpact || 'No impact specified',
+						progressionPattern: c.progressionPattern || 'Stable'
+					})) || [],
+
+				followUpCare:
+					parsed.followUpCare?.map((f) => ({
+						careName: f.careName || 'Unknown Care',
+						reasonForFollowUp: f.reasonForFollowUp || 'No reason specified',
+						recommendedFrequency: f.recommendedFrequency || 'Not specified',
+						priorityLevel: f.priorityLevel || 'Medium',
+						lastVisitDate: f.lastVisitDate || 'Unknown',
+						nextDueDate: f.nextDueDate || 'Not scheduled',
+						complianceStatus: f.complianceStatus || 'Partially Compliant'
+					})) || [],
+
+				treatmentPredictions:
+					parsed.treatmentPredictions?.map((t) => ({
+						conditionTreated: t.conditionTreated || 'Unknown Condition',
+						expectedOutcome: t.expectedOutcome || 'Uncertain',
+						patientAdherence: t.patientAdherence || 'Moderate',
+						supportingEvidence: t.supportingEvidence || 'No evidence provided',
+						confidenceLevel: t.confidenceLevel || 'Moderate',
+						timeframe: t.timeframe || 'Not specified'
+					})) || [],
+
+				medicationAdherence:
+					parsed.medicationAdherence?.map((m) => ({
+						medicationName: m.medicationName || 'Unknown Medication',
+						adherenceLevel: m.adherenceLevel || 'Moderate',
+						startDate: m.startDate || 'Unknown',
+						endDate: m.endDate || 'Current',
+						sideEffectsReported: m.sideEffectsReported || [],
+						renewalPattern: m.renewalPattern || 'Regular'
+					})) || [],
+
+				preventiveCare:
+					parsed.preventiveCare?.map((p) => ({
+						serviceName: p.serviceName || 'Unknown Service',
+						recommendedFrequency: p.recommendedFrequency || 'Not specified',
+						lastServiceDate: p.lastServiceDate || 'Unknown',
+						complianceLevel: p.complianceLevel || 'Adequate',
+						nextDueDate: p.nextDueDate || 'Not scheduled'
+					})) || []
+			};
+		} catch (error) {
+			console.error('Error parsing analysis data:', error);
+			return null;
+		}
+	}
+
+	// Process the raw data
+	const processedData = $derived(parseAnalysisData(rawData));
+
+	function getBadgeVariant(level: string): string {
+		const variants: Record<string, string> = {
+			// Severity Levels
+			Mild: 'variant-filled-success',
+			Moderate: 'variant-filled-warning',
+			Severe: 'variant-filled-error',
+			Resolved: 'variant-filled',
+
+			// Priority Levels
+			Low: 'variant-filled-success',
+			Medium: 'variant-filled-warning',
+			High: 'variant-filled-error',
+			Urgent: 'variant-filled-error',
+
+			// Outcome & Adherence
+			Favorable: 'variant-filled-success',
+			Guarded: 'variant-filled-warning',
+			Poor: 'variant-filled-error',
+			Uncertain: 'variant-filled-surface',
+
+			// Compliance
+			Compliant: 'variant-filled-success',
+			'Partially Compliant': 'variant-filled-warning',
+			'Non-compliant': 'variant-filled-error',
+
+			// Prevention
+			Optimal: 'variant-filled-success',
+			Adequate: 'variant-filled-warning',
+			Suboptimal: 'variant-filled-error'
+		};
+
+		return variants[level] || 'variant-filled';
+	}
+</script>
+
+{#if processedData}
+	<div class="space-y-8">
+		<!-- Conditions Section -->
+		{#if processedData.conditions.length > 0}
+			<section class="space-y-4">
+				<h3 class="h3">Medical Conditions</h3>
+				<div class="flex flex-col gap-4">
+					{#each processedData.conditions as condition}
+						<div class="card p-4 variant-outline">
+							<header class="flex flex-col gap-2">
+								<h4 class="h4">{condition.name}</h4>
+								<div class="flex flex-wrap gap-2">
+									<span class="badge {getBadgeVariant(condition.severityLevel)}"
+										>{condition.severityLevel}</span
+									>
+									<span class="badge {getBadgeVariant(condition.progressionPattern)}"
+										>{condition.progressionPattern}</span
+									>
+								</div>
+							</header>
+							<hr class="my-2" />
+							<div class="space-y-2">
+								<p>
+									<strong>Timeline:</strong>
+									{condition.timelineStart} - {condition.timelineEnd}
+								</p>
+								<p>{condition.reasonForSeverity}</p>
+								<p>{condition.healthImpact}</p>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+
+		<!-- Treatment Predictions Section -->
+		{#if processedData.treatmentPredictions.length > 0}
+			<section class="space-y-4">
+				<h3 class="h3">Treatment Predictions</h3>
+				<div class="flex flex-col gap-4">
+					{#each processedData.treatmentPredictions as treatment}
+						<div class="card p-4 variant-outline">
+							<header class="flex flex-col gap-2">
+								<h4 class="h4">{treatment.conditionTreated}</h4>
+								<div class="flex flex-wrap gap-2">
+									<span class="badge {getBadgeVariant(treatment.expectedOutcome)}"
+										>Expected Outcome: {treatment.expectedOutcome}</span
+									>
+									<!-- <span class="badge {getBadgeVariant(treatment.confidenceLevel)}"
+										>Confidence: {treatment.confidenceLevel}</span
+									> -->
+								</div>
+							</header>
+							<hr class="my-2" />
+							<div class="space-y-2">
+								<p><strong>Timeframe:</strong> {treatment.timeframe}</p>
+								<p>
+									<strong>Adherence:</strong>
+									<span class="badge {getBadgeVariant(treatment.patientAdherence)}"
+										>{treatment.patientAdherence}</span
+									>
+								</p>
+								<p>{treatment.supportingEvidence}</p>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+
+		<!-- Follow-up Care Section -->
+		{#if processedData.followUpCare.length > 0}
+			<section class="space-y-4">
+				<h3 class="h3">Follow-up Care</h3>
+				<div class="flex flex-col gap-4">
+					{#each processedData.followUpCare as care}
+						<div class="card p-4 variant-outline">
+							<header class="flex flex-wrap gap-2">
+								<h4 class="h4">{care.careName}</h4>
+								<div class="flex flex-wrap gap-2">
+									<span class="badge {getBadgeVariant(care.priorityLevel)}"
+										>Priority: {care.priorityLevel}</span
+									>
+									<span class="badge {getBadgeVariant(care.complianceStatus)}"
+										>Compliance: {care.complianceStatus}</span
+									>
+								</div>
+							</header>
+							<hr class="my-2" />
+							<div class="space-y-2">
+								<p>{care.reasonForFollowUp}</p>
+								<p><strong>Frequency:</strong> {care.recommendedFrequency}</p>
+								<p><strong>Last Visit:</strong> {care.lastVisitDate}</p>
+								<p><strong>Next Due:</strong> {care.nextDueDate}</p>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+
+		<!-- Medication Adherence Section -->
+		{#if processedData.medicationAdherence.length > 0}
+			<section class="space-y-4">
+				<h3 class="h3">Medication Adherence</h3>
+				<div class="flex flex-col gap-4">
+					{#each processedData.medicationAdherence as medication}
+						<div class="card p-4 variant-outline">
+							<header class="flex flex-col gap-2">
+								<h4 class="h4">{medication.medicationName}</h4>
+								<div class="flex flex-wrap gap-2">
+									<span class="badge {getBadgeVariant(medication.adherenceLevel)}"
+										>Adherence: {medication.adherenceLevel}</span
+									>
+									<span class="badge {getBadgeVariant(medication.renewalPattern)}"
+										>{medication.renewalPattern}</span
+									>
+								</div>
+							</header>
+							<hr class="my-2" />
+							<div class="space-y-2">
+								<p><strong>Period:</strong> {medication.startDate} - {medication.endDate}</p>
+								{#if medication.sideEffectsReported.length > 0}
+									<div class="space-y-1">
+										<p class="font-semibold">Side Effects:</p>
+										<div class="flex flex-wrap gap-2">
+											{#each medication.sideEffectsReported as effect}
+												<span class="chip variant-filled-warning">{effect}</span>
+											{/each}
+										</div>
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+
+		<!-- Preventive Care Section -->
+		{#if processedData.preventiveCare.length > 0}
+			<section class="space-y-4">
+				<h3 class="h3">Preventive Care</h3>
+				<div class="flex flex-col gap-4">
+					{#each processedData.preventiveCare as care}
+						<div class="card p-4 variant-outline">
+							<header class="flex flex-col gap-2">
+								<h4 class="h4">{care.serviceName}</h4>
+
+								<div class="flex flex-wrap gap-2">
+									<span class="badge {getBadgeVariant(care.complianceLevel)}"
+										>Compliance: {care.complianceLevel}</span
+									>
+								</div>
+							</header>
+							<hr class="my-2" />
+							<div class="space-y-2">
+								<p><strong>Frequency:</strong> {care.recommendedFrequency}</p>
+								<p><strong>Last Service:</strong> {care.lastServiceDate}</p>
+								<p><strong>Next Due:</strong> {care.nextDueDate}</p>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+	</div>
+{:else}
+	<div class="card p-4 variant-filled-error">
+		<p>Error processing analysis data. Please check the console for details.</p>
+	</div>
+{/if}
+
+```
+
+# src/lib/components/AnalyzePanel.svelte
+
+```svelte
+<script lang="ts">
+	import type { ChatMessage } from '$lib/services/openrouter';
+	import AnalyzeData from './AnalyzeData.svelte';
+
+	let { messages, rawData, isLoading, onClear } = $props<{
+		messages: ChatMessage[];
+		rawData: string;
+		isLoading: boolean;
+		onClear: () => void;
+	}>();
+
+	let currentMessage = $state('');
+</script>
+
+<div class="p-4 overflow-y-auto">
+	<div class="card p-4 space-y-4">
+		<div class="flex justify-end items-center">
+			<button class="btn btn-sm variant-soft" onclick={onClear}>Close</button>
+		</div>
+
+		<!-- Raw Data -->
+		<div class="space-y-2 h-[calc(100vh-205px)] overflow-y-auto">
+			{#if isLoading == false}
+				<AnalyzeData {rawData} />
+			{/if}
+
+			{#if isLoading}
+				<div class="flex flex-col justify-center items-center">
+					<div class="spinner-dual-ring mt-5 mb-3"></div>
+					<div>Analyzing patient notes</div>
+				</div>
+			{/if}
+		</div>
+	</div>
+</div>
+
+<style>
+	.spinner-dual-ring {
+		width: 24px;
+		height: 24px;
+		border: 3px solid #919191;
+		border-radius: 50%;
+		border-top-color: transparent;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+</style>
+
+```
+
 # src/lib/components/Authenticated.svelte
 
 ```svelte
@@ -319,6 +670,67 @@ export {};
 
 ```
 
+# src/lib/models/analysis.ts
+
+```ts
+// src/lib/types/analysis.ts
+
+export type Condition = {
+    name: string;
+    severityLevel: 'Mild' | 'Moderate' | 'Severe' | 'Resolved';
+    reasonForSeverity: string;
+    timelineStart: string;
+    timelineEnd: string;
+    riskFactors: string[];
+    healthImpact: string;
+    progressionPattern: 'Improving' | 'Stable' | 'Worsening' | 'Resolved';
+};
+
+export type FollowUpCare = {
+    careName: string;
+    reasonForFollowUp: string;
+    recommendedFrequency: string;
+    priorityLevel: 'Low' | 'Medium' | 'High' | 'Urgent';
+    lastVisitDate: string;
+    nextDueDate: string;
+    complianceStatus: 'Compliant' | 'Partially Compliant' | 'Non-compliant';
+};
+
+export type TreatmentPrediction = {
+    conditionTreated: string;
+    expectedOutcome: 'Favorable' | 'Guarded' | 'Poor' | 'Uncertain';
+    patientAdherence: 'High' | 'Moderate' | 'Low';
+    supportingEvidence: string;
+    confidenceLevel: 'High' | 'Moderate' | 'Low';
+    timeframe: string;
+};
+
+export type MedicationAdherence = {
+    medicationName: string;
+    adherenceLevel: 'High' | 'Moderate' | 'Low';
+    startDate: string;
+    endDate: string;
+    sideEffectsReported: string[];
+    renewalPattern: 'Regular' | 'Irregular' | 'Discontinued';
+};
+
+export type PreventiveCare = {
+    serviceName: string;
+    recommendedFrequency: string;
+    lastServiceDate: string;
+    complianceLevel: 'Optimal' | 'Adequate' | 'Suboptimal';
+    nextDueDate: string;
+};
+
+export type AnalysisData = {
+    conditions: Condition[];
+    followUpCare: FollowUpCare[];
+    treatmentPredictions: TreatmentPrediction[];
+    medicationAdherence: MedicationAdherence[];
+    preventiveCare: PreventiveCare[];
+};
+```
+
 # src/lib/services/openrouter.ts
 
 ```ts
@@ -336,7 +748,11 @@ export class OpenRouterClient {
   }
 
   getPromptMessage(clinicalNotes: string): string {
-    return `# Clinical Notes Analysis Prompt
+    return `
+
+      SYSTEM: YOU ARE AN ASSISTANT THAT ONLY SPEAKS JSON. DO NOT WRITE NORMAL TEXT.
+
+      # Clinical Notes Analysis Prompt
 
       Analyze the provided clinical notes and generate a comprehensive JSON report following the structure and definitions below:
 
@@ -344,23 +760,22 @@ export class OpenRouterClient {
 
       ### Clinical Notes
       ${clinicalNotes}
-
-      ### Output Formatjson
+      
+      ### Output Format Json
       {
-        "conditions": [
+        "conditions": [                      // List of medical conditions, do not include duplicates of the same conditions and like employment or medication reviews
           {
             "name": "string",                // Name of the medical condition
             "severityLevel": "string",       // Values: ["Mild", "Moderate", "Severe", "Resolved"]
             "reasonForSeverity": "string",   // Explanation for severity assessment
             "timelineStart": "date",         // First mention/diagnosis date
             "timelineEnd": "date",           // Last mention or "present"
-            "documentSources": ["string"],   // List of document IDs where condition is mentioned
             "riskFactors": ["string"],       // Associated risk factors
             "healthImpact": "string",        // Impact on patient's health
             "progressionPattern": "string"   // Values: ["Improving", "Stable", "Worsening", "Resolved"]
           }
         ],
-        "followUpCare": [
+        "followUpCare": [                   // Recommended follow-up care list, do not include duplicates
           {
             "careName": "string",            // Name of recommended follow-up
             "reasonForFollowUp": "string",   // Why this follow-up is needed
@@ -368,22 +783,20 @@ export class OpenRouterClient {
             "priorityLevel": "string",       // Values: ["Low", "Medium", "High", "Urgent"]
             "lastVisitDate": "date",         // Date of last related visit
             "nextDueDate": "date",           // When next follow-up is due
-            "documentSources": ["string"],   // List of document IDs mentioning this follow-up
             "complianceStatus": "string"     // Values: ["Compliant", "Partially Compliant", "Non-compliant"]
           }
         ],
-        "treatmentPredictions": [
+        "treatmentPredictions": [            // List of treatment predictions, do not include duplicates
           {
             "conditionTreated": "string",    // Condition being treated
             "expectedOutcome": "string",     // Values: ["Favorable", "Guarded", "Poor", "Uncertain"]
             "patientAdherence": "string",    // Values: ["High", "Moderate", "Low"]
-            "documentSources": ["string"],   // Supporting documentation IDs
             "supportingEvidence": "string",  // Evidence for prediction
             "confidenceLevel": "string",     // Values: ["High", "Moderate", "Low"]
             "timeframe": "string"            // Expected timeframe for outcome
           }
         ],
-        "medicationAdherence": [
+        "medicationAdherence": [              // List of medication adherence records
           {
             "medicationName": "string",      // Name and dosage of medication
             "adherenceLevel": "string",      // Values: ["High", "Moderate", "Low"]
@@ -391,27 +804,17 @@ export class OpenRouterClient {
             "endDate": "date",               // When medication ended or "current"
             "sideEffectsReported": ["string"], // Any reported side effects
             "renewalPattern": "string",      // Values: ["Regular", "Irregular", "Discontinued"]
-            "documentSources": ["string"]    // Supporting documentation IDs
           }
         ],
-        "preventiveCare": [
+        "preventiveCare": [                  // List of preventive care services
           {
             "serviceName": "string",         // Name of preventive service
             "recommendedFrequency": "string", // How often service should occur
             "lastServiceDate": "date",       // Date of last service
             "complianceLevel": "string",     // Values: ["Optimal", "Adequate", "Suboptimal"]
             "nextDueDate": "date",           // When next service is due
-            "documentSources": ["string"]    // Supporting documentation IDs
           }
         ],
-        "socialFactors": {
-          "educationLevel": "string",        // Highest education achieved
-          "insuranceStatus": "string",       // Current insurance coverage
-          "employmentStatus": "string",      // Values: ["Employed", "Unemployed", "Retired", "Disabled"]
-          "supportNetwork": ["string"],      // Available support systems
-          "careBarriers": ["string"],        // Identified barriers to care
-          "documentSources": ["string"]      // Supporting documentation IDs
-        }
       }
 
       ## Scale Definitions
@@ -446,12 +849,13 @@ export class OpenRouterClient {
 
       ## Analysis Guidelines
 
-      1. Base all assessments on explicit evidence from the clinical notes
+      1. Base all assessments on explicit evidence from the clinical notes d
       2. Include specific document IDs and dates for all sources
       3. Note any conflicting information or uncertainties
       4. Consider temporal patterns and trends
       5. Account for social and environmental factors
       6. Document any gaps in information that affect confidence levels
+      7. Do not repeat the same condition / follow-up care / treatment predictions in the list unless there are distinct aspects to discuss
 
       ## Required Analyses
 
@@ -463,7 +867,44 @@ export class OpenRouterClient {
       5. Identification of any information gaps
       6. Assessment of confidence in conclusions
 
-      The output should be properly formatted JSON suitable for programmatic processing and UI display.`;
+      The output should be properly formatted JSON suitable for programmatic processing and UI display.
+      `;
+  }
+
+  async chat(messages: ChatMessage[]): Promise<string> {
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Medical Notes Analysis'
+        },
+        body: JSON.stringify({
+          model: 'anthropic/claude-3-sonnet',
+          messages: messages,
+          stream: false,
+          temperature: 1,
+          max_tokens: 100000
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('OpenRouter API Error:', errorData);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      console.error(data);
+
+      return data.choices[0]?.message?.content || '';
+    } catch (error) {
+      console.error('Chat error:', error);
+      throw error;
+    }
   }
 
   async streamChat(messages: ChatMessage[], onChunk: (chunk: string) => void): Promise<void> {
@@ -623,8 +1064,9 @@ export class OpenRouterClient {
 	import { OpenRouterClient, type ChatMessage } from '$lib/services/openrouter';
 	import ChatPanel from '$lib/components/ChatPanel.svelte';
 	import { env } from '$env/dynamic/public';
+	import AnalyzePanel from '$lib/components/AnalyzePanel.svelte';
 
-	// State management with runes (updated)
+	// State management with runes
 	let patient = $state<Patient | null>(null);
 	let documents = $state<ProcessedDocument[]>([]);
 	let loading = $state(true);
@@ -633,6 +1075,7 @@ export class OpenRouterClient {
 	let isOpen = $state(false);
 	let messages = $state<ChatMessage[]>([]);
 	let isLoading = $state(false);
+	let rawData = $state('');
 
 	const client = new OpenRouterClient(env.PUBLIC_OPEN_ROUTER);
 
@@ -788,6 +1231,39 @@ export class OpenRouterClient {
 		}
 	}
 
+	async function analyzeRecords() {
+		if (isLoading) return;
+		isLoading = true;
+
+		let docs = documents
+			.map((doc, index) => {
+				return `Document ${index + 1}:\n${JSON.stringify(doc, null, 2)}`;
+			})
+			.join('\n\n');
+
+		try {
+			const promptMessage = client.getPromptMessage(docs);
+			const analysis = await client.chat([
+				{
+					role: 'system',
+					content: promptMessage
+				}
+			]);
+
+			console.info(analysis);
+
+			// Save raw analysis data
+			rawData = analysis;
+
+			// Add the analysis to messages
+			messages = [...messages, { role: 'assistant', content: analysis }];
+		} catch (error) {
+			console.error('Analysis error:', error);
+		} finally {
+			isLoading = false;
+		}
+	}
+
 	async function handleChatSubmit(message: string) {
 		if (isLoading) return;
 		isLoading = true;
@@ -840,7 +1316,9 @@ export class OpenRouterClient {
 	}
 
 	function clearChat() {
+		rawData = '';
 		messages = [];
+		isOpen = false;
 	}
 
 	$effect(() => {
@@ -922,9 +1400,13 @@ export class OpenRouterClient {
 						<button
 							class="btn variant-filled-secondary h-full px-8"
 							class:variant-filled-primary={isOpen}
-							onclick={() => (isOpen = !isOpen)}
+							onclick={async () => {
+								isOpen = !isOpen;
+								rawData = '';
+								await analyzeRecords();
+							}}
 						>
-							AI Analysis
+							Analyze Records
 						</button>
 					</div>
 				</div>
@@ -936,7 +1418,7 @@ export class OpenRouterClient {
 					<div
 						class="h-full grid"
 						class:grid-cols-[300px_1fr]={!isOpen}
-						class:grid-cols-[300px_1fr_450px]={isOpen}
+						class:grid-cols-[300px_1fr_500px]={isOpen}
 					>
 						<!-- Patient Info Sidebar -->
 						{#if patient}
@@ -999,171 +1481,12 @@ export class OpenRouterClient {
 
 						<!-- Chat Panel -->
 						{#if isOpen}
-							<ChatPanel {messages} {isLoading} onSubmit={handleChatSubmit} onClear={clearChat} />
+							<AnalyzePanel {messages} {rawData} {isLoading} onClear={clearChat} />
 						{/if}
 					</div>
 				</div>
 			</div>
 		</div>
-	{/if}
-</Authenticated>
-
-```
-
-# src/routes/observations/+page.svelte
-
-```svelte
-<script lang="ts">
-	import FHIR from 'fhirclient';
-	import Authenticated from '$lib/components/Authenticated.svelte';
-	import { browser } from '$app/environment';
-	import { onMount } from 'svelte';
-
-	type ObservationComponent = {
-		code: {
-			text: string;
-		};
-		valueQuantity: {
-			value: number;
-			unit: string;
-		};
-	};
-
-	type Observation = {
-		resourceType: string;
-		code: {
-			text: string;
-		};
-		effectiveDateTime?: string;
-		valueCodeableConcept?: {
-			text: string;
-		};
-		valueQuantity?: {
-			value: number;
-			unit: string;
-		};
-		component?: ObservationComponent[];
-	};
-
-	type BundleEntry = {
-		resource: {
-			resourceType: string;
-			entry?: BundleEntry[];
-		} & Partial<Observation>;
-	};
-
-	type Bundle = {
-		entry?: BundleEntry[];
-	};
-
-	const categories = [
-		'social-history',
-		'vital-signs',
-		'imaging',
-		'laboratory',
-		'procedure',
-		'survey',
-		'exam',
-		'therapy',
-		'activity'
-	];
-
-	let loading = $state(false);
-	let category = $state(categories[0]);
-	let observations = $state<Observation[] | null>(null);
-	let lastCategory = categories[0]; // Track last category
-
-	async function loadObservations() {
-		if (loading) return;
-		loading = true;
-		observations = null;
-
-		try {
-			const client = await FHIR.oauth2.ready();
-			const patientId = client.getPatientId();
-			const bundle = await client.request<Bundle>(
-				`Observation?subject=${encodeURIComponent('Patient/' + patientId)}&category=${category}`
-			);
-
-			// 	`Observation?subject=${encodeURIComponent('Patient/' + patientId)}&category=${category}`
-
-			console.log(bundle);
-
-			if (!bundle.entry) return;
-
-			if (bundle.entry.every((x) => x?.resource?.resourceType === 'Bundle')) {
-				observations = bundle.entry
-					.map((x) => ('entry' in x.resource ? x.resource.entry || [] : []))
-					.flat()
-					.map((x) => x?.resource)
-					.filter((x): x is Observation => x?.resourceType === 'Observation' && x !== undefined);
-			} else {
-				observations = bundle.entry
-					.map((x) => x?.resource)
-					.filter((x): x is Observation => x?.resourceType === 'Observation' && x !== undefined);
-			}
-		} finally {
-			loading = false;
-		}
-	}
-
-	function handleCategoryChange() {
-		if (category !== lastCategory) {
-			lastCategory = category;
-			loadObservations();
-		}
-	}
-
-	onMount(() => {
-		if (browser) {
-			loadObservations();
-		}
-	});
-
-	$effect(() => {
-		if (browser) {
-			handleCategoryChange();
-		}
-	});
-</script>
-
-<Authenticated>
-	<h1>Patient Observations</h1>
-
-	<select bind:value={category}>
-		{#each categories as cat}
-			<option value={cat}>{cat}</option>
-		{/each}
-	</select>
-
-	{#if loading}
-		<div>Loading...</div>
-	{/if}
-
-	{#if observations}
-		<ul>
-			{#each observations as ob}
-				<li>
-					{#if ob.valueCodeableConcept}
-						{ob.code.text} - {ob.valueCodeableConcept.text}
-					{:else if ob.component}
-						[{ob.effectiveDateTime}] - {ob.code.text}
-						<ul>
-							{#each ob.component as comp}
-								<li>
-									{comp.code.text} - {comp.valueQuantity.value}({comp.valueQuantity.unit})
-								</li>
-							{/each}
-						</ul>
-					{:else if ob.valueQuantity}
-						[{ob.effectiveDateTime}] {ob.code.text} - {ob.valueQuantity.value}({ob.valueQuantity
-							.unit})
-					{:else}
-						{ob.code.text}
-					{/if}
-				</li>
-			{/each}
-		</ul>
 	{/if}
 </Authenticated>
 

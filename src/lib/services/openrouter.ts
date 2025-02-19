@@ -11,6 +11,82 @@ export class OpenRouterClient {
     this.apiKey = apiKey;
   }
 
+  getConsultationPrepPrompt(clinicalNotes: string): string {
+    return `
+    SYSTEM: YOU ARE AN ASSISTANT THAT ONLY SPEAKS JSON. DO NOT WRITE NORMAL TEXT.
+
+    # Consultation Preparation Assistant
+
+    Analyze the provided clinical notes and generate a focused set of questions to help a physician prepare for the upcoming consultation. Follow these specific guidelines:
+
+    ## Analysis Requirements
+
+    ### Clinical Notes
+    ${clinicalNotes}
+    
+    ### Rules
+    1. Only consider records from the last 3 years based on the most recent record date
+    2. Do not include questions about conditions that appear to be cured or resolved
+    3. Focus on ongoing management, medication adherence, and follow-up needs
+    4. Keep questions concise and direct (avoid phrases like "I see" or "I notice")
+    5. Include the source date for each question
+    
+    ### Output Format Json
+    {
+      "patientSummary": {
+        "name": "string",
+        "age": "number",
+        "currentMedications": ["string"],
+        "ongoingConditions": ["string"],
+        "analyzedPeriod": "string"
+      },
+      "consultationQuestions": [
+        {
+          "category": "string",          // e.g., "Medication Management", "Mental Health", etc.
+          "questions": [
+            {
+              "question": "string",      // Short, direct question
+              "rationale": "string",     // Brief explanation of relevance
+              "source": "string"         // Date of relevant record
+            }
+          ]
+        }
+      ],
+      "preventiveCareNeeds": [
+        {
+          "type": "string",              // e.g., "Immunization", "Screening"
+          "description": "string",
+          "dueDate": "string",
+          "lastCompleted": "string"
+        }
+      ]
+    }
+
+    ## Question Categories
+    Generate questions in these categories as relevant:
+    1. Medication Management
+    2. Pain Assessment
+    3. Mental Health Status
+    4. Preventive Care
+    5. Social Determinants
+    6. Symptom Management
+    7. Specialty Follow-up
+    8. General Health Changes
+
+    ## Analysis Guidelines
+    1. Determine the 3-year timeframe from most recent record
+    2. Identify active medications and related questions
+    3. Note ongoing conditions requiring follow-up
+    4. Include recent assessments needing follow-up
+    5. Keep questions concise and specific
+    6. Reference source record date for each question
+    7. Focus only on relevant, actionable information
+    8. Prioritize questions based on clinical importance
+
+    The output should be properly formatted JSON suitable for programmatic processing. Do not include any explanatory text outside the JSON structure.
+    `;
+  }
+
   getPromptMessage(clinicalNotes: string): string {
     return `
 
