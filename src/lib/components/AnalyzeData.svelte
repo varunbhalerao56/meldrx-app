@@ -141,13 +141,6 @@
 								</p>
 								<p>{condition.reasonForSeverity}</p>
 								<p>{condition.healthImpact}</p>
-								{#if condition.riskFactors.length > 0}
-									<div class="flex flex-wrap gap-2">
-										{#each condition.riskFactors as factor}
-											<span class="chip variant-soft">{factor}</span>
-										{/each}
-									</div>
-								{/if}
 							</div>
 						</div>
 					{/each}
