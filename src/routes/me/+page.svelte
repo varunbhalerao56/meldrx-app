@@ -8,7 +8,7 @@
 	import { env } from '$env/dynamic/public';
 	import AnalyzePanel from '$lib/components/AnalyzePanel.svelte';
 
-	// State management with runes (updated)
+	// State management with runes
 	let patient = $state<Patient | null>(null);
 	let documents = $state<ProcessedDocument[]>([]);
 	let loading = $state(true);
