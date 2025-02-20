@@ -412,14 +412,6 @@
 									</div>
 								</div>
 
-								<button class="btn variant-filled w-full mt-5" onclick={async () => {}}>
-									Privacy Policy
-								</button>
-
-								<button class="btn variant-filled w-full mt-5" onclick={async () => {}}>
-									Terms & Conditions
-								</button>
-
 								<button
 									class="btn w-full mt-5"
 									onclick={async () => {

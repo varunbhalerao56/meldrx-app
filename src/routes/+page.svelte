@@ -12,15 +12,15 @@
 	}
 </script>
 
-<div class="flex min-h-screen items-center justify-center p-4">
-	<div class="card p-8 space-y-8 w-full max-w-2xl">
-		<div class="text-center space-y-4">
-			<h1 class="h1">Your Medical History Explorer</h1>
+<div class="container mx-auto min-h-screen flex flex-col items-center justify-center p-4">
+	<div class="card p-8 w-full max-w-2xl">
+		<header class="text-center mb-10">
+			<h1 class="h1 mb-4">Welcome to Orama</h1>
 			<p class="text-lg">
 				Find out why certain choices were made for your patients by logging into your EHR system and
 				using our FHIR compliant tool
 			</p>
-		</div>
+		</header>
 
 		<div class="flex justify-center">
 			<button type="button" class="btn variant-filled-primary text-lg py-3 px-6" onclick={login}>
@@ -28,4 +28,16 @@
 			</button>
 		</div>
 	</div>
+
+	<footer class="mt-5 text-center text-sm opacity-75">
+		<a href="/privacy-policy" class="btn">
+			<span class="material-symbols-outlined"></span>
+			<span>Privacy Policy</span>
+		</a>
+		<a href="/terms-and-conditions" class="btn">
+			<span class="material-symbols-outlined"></span>
+			<span>Terms & Conditions</span>
+		</a>
+		<p class="mt-2">© 2025 Orama. All rights reserved.</p>
+	</footer>
 </div>
