@@ -46,6 +46,7 @@
 			<div class="flex flex-col justify-center items-center">
 				<div class="spinner-dual-ring mt-5 mb-3"></div>
 				<div>Analyzing patient notes</div>
+				<div class="text-sm opacity-75 mt-2">This may take up to a minute</div>
 			</div>
 		{/if}
 	</div>

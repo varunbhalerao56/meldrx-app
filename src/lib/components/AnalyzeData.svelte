@@ -155,7 +155,7 @@
 										class="btn btn-sm variant-ghost-surface"
 										onclick={() => toggleInfoPanel(`condition-${i}`)}
 									>
-										<span class="material-symbols-outlined text-sm">info</span>
+										<span class="material-symbols-outlined text-sm">Info</span>
 									</button>
 								</div>
 								<div class="flex flex-wrap gap-2">
