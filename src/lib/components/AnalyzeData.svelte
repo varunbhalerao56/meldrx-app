@@ -111,6 +111,32 @@
 
 		return variants[level] || 'variant-filled';
 	}
+
+	// Add this function to generate confidence indicators
+	function getConfidenceIndicator(level: string): string {
+		const confidenceLevels: Record<string, { width: string; color: string }> = {
+			High: { width: 'w-3/4', color: 'bg-success-500' },
+			Moderate: { width: 'w-1/2', color: 'bg-warning-500' },
+			Low: { width: 'w-1/4', color: 'bg-error-500' }
+		};
+
+		return level in confidenceLevels
+			? `<div class="flex items-center gap-2 mt-1">
+				<span class="text-xs">Confidence:</span>
+				<div class="h-1.5 w-16 bg-surface-200-700-token rounded-full overflow-hidden">
+					<div class="h-full ${confidenceLevels[level].color} ${confidenceLevels[level].width}"></div>
+				</div>
+			</div>`
+			: '';
+	}
+
+	// Track which cards have their info panel open
+	let visibleInfoPanels = $state<Record<string, boolean>>({});
+
+	// Toggle info panel visibility
+	function toggleInfoPanel(id: string): void {
+		visibleInfoPanels[id] = !visibleInfoPanels[id];
+	}
 </script>
 
 {#if processedData}
@@ -120,10 +146,18 @@
 			<section class="space-y-4">
 				<h3 class="h3">Medical Conditions</h3>
 				<div class="flex flex-col gap-4">
-					{#each processedData.conditions as condition}
+					{#each processedData.conditions as condition, i}
 						<div class="card p-4 variant-outline">
 							<header class="flex flex-col gap-2">
-								<h4 class="h4">{condition.name}</h4>
+								<div class="flex justify-between">
+									<h4 class="h4">{condition.name}</h4>
+									<button
+										class="btn btn-sm variant-ghost-surface"
+										onclick={() => toggleInfoPanel(`condition-${i}`)}
+									>
+										<span class="material-symbols-outlined text-sm">info</span>
+									</button>
+								</div>
 								<div class="flex flex-wrap gap-2">
 									<span class="badge {getBadgeVariant(condition.severityLevel)}"
 										>{condition.severityLevel}</span
@@ -142,6 +176,25 @@
 								<p>{condition.reasonForSeverity}</p>
 								<p>{condition.healthImpact}</p>
 							</div>
+
+							<!-- Add this info panel -->
+							{#if visibleInfoPanels[`condition-${i}`]}
+								<div class="mt-3 p-2 bg-surface-100-800-token rounded text-sm">
+									<p><strong>Source:</strong> Analysis based on clinical documentation.</p>
+									<p><strong>Method:</strong> AI pattern recognition from patient records.</p>
+									<p>
+										<strong>Confidence Level:</strong>
+										{condition.severityLevel === 'Mild'
+											? 'High'
+											: condition.severityLevel === 'Moderate'
+												? 'Moderate'
+												: 'Variable'}
+									</p>
+									<p class="text-xs italic mt-1">
+										This assessment is meant to assist, not replace, clinical judgment.
+									</p>
+								</div>
+							{/if}
 						</div>
 					{/each}
 				</div>
@@ -153,7 +206,7 @@
 			<section class="space-y-4">
 				<h3 class="h3">Treatment Predictions</h3>
 				<div class="flex flex-col gap-4">
-					{#each processedData.treatmentPredictions as treatment}
+					{#each processedData.treatmentPredictions as treatment, i}
 						<div class="card p-4 variant-outline">
 							<header class="flex flex-col gap-2">
 								<h4 class="h4">{treatment.conditionTreated}</h4>
@@ -176,7 +229,41 @@
 									>
 								</p>
 								<p>{treatment.supportingEvidence}</p>
+
+								<!-- Add this line to include the confidence indicator -->
+								{@html getConfidenceIndicator(treatment.confidenceLevel)}
 							</div>
+
+							<!-- Add info button and panel -->
+							<div class="flex justify-end mt-2">
+								<button
+									class="btn btn-sm variant-ghost-surface"
+									onclick={() => {
+										toggleInfoPanel(`treatment-${i}`);
+									}}
+								>
+									<span class="material-symbols-outlined text-sm">info</span>
+								</button>
+							</div>
+
+							{#if visibleInfoPanels[`treatment-${i}`]}
+								<div class="mt-3 p-2 bg-surface-100-800-token rounded text-sm">
+									<p>
+										<strong>Source:</strong> Treatment prediction based on clinical guidelines and patient
+										history.
+									</p>
+									<p>
+										<strong>Method:</strong> AI analysis of similar patient outcomes and treatment protocols.
+									</p>
+									<p>
+										<strong>Confidence Level:</strong>
+										{treatment.confidenceLevel || 'Moderate'}
+									</p>
+									<p class="text-xs italic mt-1">
+										This prediction is meant to assist, not replace, clinical judgment.
+									</p>
+								</div>
+							{/if}
 						</div>
 					{/each}
 				</div>

@@ -66,6 +66,7 @@
 	async function logout() {
 		if (browser) {
 			try {
+				sessionStorage.clear();
 				window.location.href = '/';
 			} catch (error) {
 				console.error('Logout error:', error);
@@ -293,6 +294,11 @@
 				})
 				.catch((error) => {
 					console.error('Failed to fetch data:', error);
+
+					console.info(error);
+					if (error.toString().startsWith("Error: No 'state' parameter found")) {
+						goto('/');
+					}
 					loading = false;
 				});
 		}
@@ -413,13 +419,26 @@
 								</div>
 
 								<button
-									class="btn w-full mt-5"
+									class="btn variant-outline w-full mt-5"
 									onclick={async () => {
 										await logout();
 									}}
 								>
 									Logout
 								</button>
+
+								<a href="/privacy-policy" class="btn w-full mt-4">
+									<span class="material-symbols-outlined"></span>
+									<span>Privacy Policy</span>
+								</a>
+								<a href="/terms-and-conditions" class="btn w-full">
+									<span class="material-symbols-outlined"></span>
+									<span>Terms & Conditions</span>
+								</a>
+								<a href="/b11-compliance" class="btn w-full">
+									<span class="material-symbols-outlined"></span>
+									<span>B11 Compliance</span>
+								</a>
 							</div>
 						{/if}
 

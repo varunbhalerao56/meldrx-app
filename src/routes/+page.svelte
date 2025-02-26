@@ -38,6 +38,11 @@
 			<span class="material-symbols-outlined"></span>
 			<span>Terms & Conditions</span>
 		</a>
+
+		<a href="/b11-compliance" class="btn">
+			<span class="material-symbols-outlined"></span>
+			<span>B11 Compliance</span>
+		</a>
 		<p class="mt-2">© 2025 Orama. All rights reserved.</p>
 	</footer>
 </div>
