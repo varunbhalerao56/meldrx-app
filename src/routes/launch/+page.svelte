@@ -6,9 +6,13 @@
 
 	let loading = true;
 	let error: string | null = null;
+	let currentUrl = '';
 
 	onMount(() => {
 		if (browser) {
+			// Get the current URL
+			currentUrl = window.location.href;
+
 			try {
 				// Get URL parameters
 				const urlParams = new URLSearchParams(window.location.search);
@@ -25,7 +29,7 @@
 				// Automatically login with the provided parameters
 				FHIR.oauth2.authorize({
 					clientId: client || env.PUBLIC_MELDRX_CLIENT_ID,
-					scope: 'openid profile fhirUser patient/*.read launch launch/patient',
+					scope: 'openid profile launch patient/*.read  ',
 					redirectUri: `${env.PUBLIC_APP_BASE_URL}/login-callback`,
 					iss: iss,
 					launch: launch || undefined
@@ -78,6 +82,12 @@
 				</button>
 			</div>
 		{/if}
+
+		<!-- Display current URL for debugging
+		<div class="mt-6 p-4 bg-surface-200 rounded-md text-sm overflow-auto">
+			<p class="font-semibold mb-2">Current URL:</p>
+			<code class="break-all">{currentUrl}</code>
+		</div> -->
 	</div>
 
 	<footer class="mt-5 text-center text-sm opacity-75">

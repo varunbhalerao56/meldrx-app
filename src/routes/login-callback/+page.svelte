@@ -7,6 +7,8 @@
 
 	$effect(() => {
 		if (browser) {
+			console.log(window.location.href);
+
 			FHIR.oauth2
 				.ready()
 				.then((client) => {
@@ -22,7 +24,17 @@
 </script>
 
 {#if ready}
-	OAuth2 Ready - Redirecting...
+	<div class="flex justify-center items-center h-screen">
+		<div class="card p-4">
+			<p>OAuth2 Ready - Redirecting...</p>
+			<div class="progress"></div>
+		</div>
+	</div>
 {:else}
-	Processing OAuth2...
+	<div class="flex justify-center items-center h-screen">
+		<div class="card p-4">
+			<p>Processing OAuth2....</p>
+			<div class="progress"></div>
+		</div>
+	</div>
 {/if}
